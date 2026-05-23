@@ -1,10 +1,9 @@
-# Stendr-Style Counter-Drone Swarm Simulation
+# Multi-Object Tracking System Using JPDA Counter-Drone Swarm Simulation
 
 A complete simulation environment for testing multi-sensor fusion and multi-target tracking
 against simulated drone swarms — built for macOS, runs entirely in software.
 
-The frontend uses **Leaflet + OpenStreetMap (CARTO dark)** centered on **Kongsberg, Norway**
-(the home of Kongsberg Defence & Aerospace — a real-world counter-UAS context).
+The frontend uses **Leaflet + OpenStreetMap (CARTO dark)** centered on **Oslo, Norway** .
 
 ## What this is
 

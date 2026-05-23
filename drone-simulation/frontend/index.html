@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STENDR ‑ COUNTER UAS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+
+  <!-- Top status bar ----------------------------------------------------- -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-name">STENDR // SIMULATION</div>
+        <div class="brand-sub">counter-uas · sensor fusion · jpda</div>
+      </div>
+    </div>
+
+    <div class="status-block">
+      <div class="status-item">
+        <div class="status-label">LOCATION</div>
+        <div class="status-value" id="stat-loc">OSLO, NO</div>
+      </div>
+      <div class="status-item">
+        <div class="status-label">TIME</div>
+        <div class="status-value" id="stat-time">000.0s</div>
+      </div>
+      <div class="status-item">
+        <div class="status-label">TRACKS</div>
+        <div class="status-value" id="stat-tracks">0</div>
+      </div>
+      <div class="status-item">
+        <div class="status-label">TRUTH</div>
+        <div class="status-value" id="stat-truth">0</div>
+      </div>
+      <div class="status-item">
+        <div class="status-label">CYCLE</div>
+        <div class="status-value" id="stat-latency">0.0 ms</div>
+      </div>
+      <div class="status-item">
+        <div class="status-label">MODE</div>
+        <div class="status-value" id="stat-mode">JPDA</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main layout -------------------------------------------------------- -->
+  <main class="layout">
+
+    <!-- Left detail drawer (hidden until a track is selected) -->
+    <aside id="drawer" class="drawer">
+      <button id="drawer-close" class="drawer-close" aria-label="close">×</button>
+      <div class="drawer-id-row">
+        <div class="drawer-id-label">TRACK</div>
+        <div class="drawer-id" id="d-id">—</div>
+        <div id="d-level" class="threat-pill">—</div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">KINEMATICS</div>
+        <div class="kv"><span>position</span><b id="d-pos">—</b></div>
+        <div class="kv"><span>range to base</span><b id="d-range">—</b></div>
+        <div class="kv"><span>speed</span><b id="d-speed">—</b></div>
+        <div class="kv"><span>heading</span><b id="d-heading">—</b></div>
+        <div class="kv"><span>closing velocity</span><b id="d-closing">—</b></div>
+        <div class="kv"><span>time to base</span><b id="d-ttb">—</b></div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">FUSION</div>
+        <div class="kv"><span>active sensors</span><b id="d-sensors">—</b></div>
+        <div class="kv"><span>classification</span><b id="d-type">—</b></div>
+        <div class="kv"><span>hits / misses</span><b id="d-hits">—</b></div>
+        <div class="kv"><span>age</span><b id="d-age">—</b></div>
+        <div class="kv"><span>covariance trace</span><b id="d-cov">—</b></div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">ESTIMATE ACCURACY</div>
+        <div class="kv"><span>matched truth</span><b id="d-truth-id">—</b></div>
+        <div class="kv"><span>position error</span><b id="d-pos-err">—</b></div>
+        <div class="kv"><span>velocity error</span><b id="d-vel-err">—</b></div>
+        <div class="kv"><span>heading error</span><b id="d-hd-err">—</b></div>
+        <div class="accuracy-grade" id="d-grade">—</div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">THREAT</div>
+        <div class="threat-bar"><div class="threat-bar-fill" id="d-bar"></div></div>
+        <div class="kv"><span>score</span><b id="d-score">—</b></div>
+      </div>
+    </aside>
+
+    <!-- The map ------------------------------------------------------- -->
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="map-legend">
+        <div><span class="dot dot-radar"></span>radar</div>
+        <div><span class="dot dot-camera"></span>camera</div>
+        <div><span class="dot dot-rf"></span>rf</div>
+        <div><span class="dot dot-acoustic"></span>acoustic</div>
+        <div><span class="dot dot-track"></span>fused track</div>
+        <div><span class="dot dot-truth"></span>ground truth</div>
+      </div>
+    </div>
+
+    <!-- Right control panel -------------------------------------------- -->
+    <aside class="controls">
+
+      <div class="control-group">
+        <div class="control-title">SCENARIO</div>
+        <button class="ctl ctl-primary" id="btn-launch">LAUNCH SWARM</button>
+        <button class="ctl" id="btn-launch-line">+ LINE FORMATION</button>
+        <button class="ctl" id="btn-pause">PAUSE</button>
+        <button class="ctl ctl-danger" id="btn-clear">CLEAR ALL</button>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">SIM SPEED</div>
+        <div class="speed-row">
+          <button class="ctl ctl-speed" data-speed="1"  id="speed-1">1×</button>
+          <button class="ctl ctl-speed ctl-active" data-speed="3"  id="speed-3">3×</button>
+          <button class="ctl ctl-speed" data-speed="5"  id="speed-5">5×</button>
+          <button class="ctl ctl-speed" data-speed="10" id="speed-10">10×</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">TRACKER</div>
+        <div class="toggle-row">
+          <button class="ctl ctl-toggle" data-mode="kalman" id="mode-kalman">KALMAN<br /><span class="small">naive · single</span></button>
+          <button class="ctl ctl-toggle ctl-active" data-mode="jpda" id="mode-jpda">JPDA<br /><span class="small">probabilistic · multi</span></button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">ELECTRONIC WARFARE</div>
+        <button class="ctl ctl-jam" data-jam="radar" id="jam-radar">
+          <span class="ctl-jam-name">JAM RADAR</span>
+          <span class="ctl-jam-status">OFF</span>
+        </button>
+        <button class="ctl ctl-jam" data-jam="rf" id="jam-rf">
+          <span class="ctl-jam-name">JAM RF</span>
+          <span class="ctl-jam-status">OFF</span>
+        </button>
+        <button class="ctl ctl-jam" data-jam="camera_spoof" id="jam-cam">
+          <span class="ctl-jam-name">SPOOF CAMERA</span>
+          <span class="ctl-jam-status">OFF</span>
+        </button>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">SENSOR HEALTH</div>
+        <div class="health-row" id="h-radar"><span>radar</span><i></i></div>
+        <div class="health-row" id="h-camera"><span>eo / ir</span><i></i></div>
+        <div class="health-row" id="h-rf"><span>rf monitor</span><i></i></div>
+        <div class="health-row" id="h-acoustic"><span>acoustic</span><i></i></div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">ACTIVE TRACKS</div>
+        <div id="track-list" class="track-list">
+          <div class="track-list-empty">no tracks</div>
+        </div>
+      </div>
+
+      <div class="control-group small-print">
+        click any track to inspect · esc closes drawer
+      </div>
+    </aside>
+
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
